@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D集装箱装箱计算器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .help-btn {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.5);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .help-btn:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.8);
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 0;
+            min-height: 900px;
+        }
+
+        .input-panel {
+            background: #f8f9fa;
+            padding: 25px;
+            border-right: 2px solid #e0e0e0;
+            overflow-y: auto;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .box-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 2px solid #e0e0e0;
+            position: relative;
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        }
+
+        .box-item:hover {
+            border-color: #667eea;
+        }
+
+        .box-item.dragging {
+            opacity: 0.5;
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            cursor: grabbing;
+        }
+
+        .box-item.drag-over {
+            border-color: #28a745;
+            border-style: dashed;
+            background: #f0fff4;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: #999;
+            font-size: 18px;
+            padding: 0 8px;
+            user-select: none;
+        }
+
+        .drag-handle:hover {
+            color: #667eea;
+        }
+
+        .box-item-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        /* 策略选择下拉框 */
+        .strategy-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+
+        .strategy-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .strategy-desc {
+            font-size: 12px;
+            color: #888;
+            margin-top: 8px;
+            padding: 10px;
+            background: #f0f4ff;
+            border-radius: 6px;
+            line-height: 1.5;
+        }
+
+        .color-indicator {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            border: 2px solid #333;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .btn-remove {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .btn-remove:hover {
+            background: #c82333;
+        }
+
+        .visualization-panel {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #canvas-container {
+            flex: 1;
+            background: #f0f0f0;
+            border-radius: 15px;
+            position: relative;
+            min-height: 500px;
+            margin-bottom: 20px;
+        }
+
+        .results {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .result-value {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .legend-item:hover {
+            background: #e9ecef;
+        }
+
+        .legend-item.active {
+            border-color: #667eea;
+        }
+
+        .legend-item.hidden {
+            opacity: 0.4;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid #333;
+            flex-shrink: 0;
+        }
+
+        .legend-text {
+            font-size: 13px;
+            color: #555;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .control-btn:hover {
+            background: #5568d3;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .utilization-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .utilization-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* 悬浮提示框样式 */
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            pointer-events: none;
+            z-index: 1000;
+            max-width: 280px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none;
+        }
+
+        .tooltip.visible {
+            display: block;
+        }
+
+        .tooltip-title {
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .tooltip-label {
+            color: #aaa;
+        }
+
+        .tooltip-value {
+            font-weight: 600;
+            color: #4ECDC4;
+        }
+
+        /* 使用说明面板 */
+        .help-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .help-modal.visible {
+            display: flex;
+        }
+
+        .help-content {
+            background: white;
+            border-radius: 20px;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 30px;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .help-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .help-close:hover {
+            color: #333;
+        }
+
+        .help-title {
+            font-size: 1.8em;
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .help-section {
+            margin-bottom: 25px;
+        }
+
+        .help-section h3 {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .help-section p, .help-section ul {
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .help-section ul {
+            padding-left: 20px;
+        }
+
+        .help-section li {
+            margin-bottom: 5px;
+        }
+
+        .help-tip {
+            background: #e8f4fd;
+            border-left: 4px solid #667eea;
+            padding: 12px 15px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 10px;
+        }
+
+        .algorithm-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .legend-panel {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .legend-panel .section-title {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📦 3D集装箱装箱计算器</h1>
+            <button class="help-btn" onclick="showHelp()">使用说明</button>
+        </div>
+
+        <div class="content">
+            <!-- 输入面板 -->
+            <div class="input-panel">
+                <!-- 集装箱尺寸 -->
+                <div class="section">
+                    <div class="section-title">🚢 集装箱尺寸 (cm)</div>
+                    <div class="input-group">
+                        <div class="input-row">
+                            <div>
+                                <label>长度</label>
+                                <input type="number" id="container-length" value="1200" min="1">
+                            </div>
+                            <div>
+                                <label>宽度</label>
+                                <input type="number" id="container-width" value="235" min="1">
+                            </div>
+                            <div>
+                                <label>高度</label>
+                                <input type="number" id="container-height" value="238" min="1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 摆放策略选择 -->
+                <div class="section">
+                    <div class="section-title">⚙️ 摆放策略</div>
+                    <div class="input-group">
+                        <select id="packing-strategy" class="strategy-select" onchange="updateStrategyDesc()">
+                            <option value="bottom-left">底层优先 (Bottom-Left)</option>
+                            <option value="layer">分层铺满 (Layer Building)</option>
+                            <option value="back-front">后向堆叠 (Back-to-Front)</option>
+                            <option value="wall">墙构建法 (Wall Building)</option>
+                            <option value="ffd" selected>体积优先 (FFD)</option>
+                            <option value="manual">用户顺序 (Manual Order)</option>
+                        </select>
+                        <div class="strategy-desc" id="strategy-desc">
+                            📦 按体积从大到小排序，优先放置大件物品，空间利用率最高。
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 摆放姿势选择 -->
+                <div class="section">
+                    <div class="section-title">📐 摆放姿势</div>
+                    <div class="input-group">
+                        <select id="orientation-mode" class="strategy-select" onchange="updateOrientationDesc()">
+                            <option value="free" selected>随意摆放 (Free Rotation)</option>
+                            <option value="upright">立放 (Upright Only)</option>
+                        </select>
+                        <div class="strategy-desc" id="orientation-desc">
+                            📦 箱子可以任意旋转（6种姿态），追求最大空间利用率。
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 箱子列表 -->
+                <div class="section">
+                    <div class="section-title">📦 货物箱子 <span style="font-size: 12px; color: #888;">（可拖拽排序）</span></div>
+                    <div id="boxes-container">
+                        <!-- 箱子项将动态添加 -->
+                    </div>
+                    <button class="btn btn-secondary" onclick="addBox()">➕ 添加箱子</button>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="section">
+                    <button class="btn btn-primary" onclick="calculate()">🔍 开始计算</button>
+                    <button class="btn btn-success" onclick="exportResults()">📥 导出结果</button>
+                </div>
+            </div>
+
+            <!-- 可视化面板 -->
+            <div class="visualization-panel">
+                <div class="loading" id="loading">正在计算最优方案...</div>
+                
+                <div id="canvas-container">
+                    <div class="tooltip" id="tooltip"></div>
+                </div>
+
+                <div class="controls">
+                    <button class="control-btn" onclick="resetCamera()">🔄 重置视角</button>
+                    <button class="control-btn" onclick="toggleWireframe()">🔲 线框模式</button>
+                    <button class="control-btn" onclick="toggleAxes()">📐 坐标轴</button>
+                    <button class="control-btn" onclick="toggleContainer()">📦 集装箱边框</button>
+                </div>
+
+                <!-- 图例区域 - 放在3D图下方 -->
+                <div class="legend-panel" id="legend-panel" style="display: none;">
+                    <div class="section-title">🎨 图例 <span style="font-size: 12px; color: #888;">(点击切换显示/隐藏)</span></div>
+                    <div class="legend" id="legend"></div>
+                </div>
+
+                <div class="results" id="results" style="display: none;">
+                    <div class="section-title">📊 计算结果 <span class="algorithm-badge" id="algorithm-badge">体积优先 (FFD)</span></div>
+                    <div class="result-item">
+                        <span class="result-label">空间利用率</span>
+                        <span class="result-value" id="utilization-rate">0%</span>
+                    </div>
+                    <div class="utilization-bar">
+                        <div class="utilization-fill" id="utilization-fill" style="width: 0%">0%</div>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">集装箱容积</span>
+                        <span class="result-value" id="container-volume">0 m³</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">已使用容积</span>
+                        <span class="result-value" id="used-volume">0 m³</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">装载箱子总数</span>
+                        <span class="result-value" id="total-boxes">0</span>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 20px;">📦 各类箱子装载情况</div>
+                    <div id="box-details"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用说明弹窗 -->
+    <div class="help-modal" id="help-modal">
+        <div class="help-content">
+            <button class="help-close" onclick="hideHelp()">×</button>
+            <h2 class="help-title">📖 使用说明</h2>
+            
+            <div class="help-section">
+                <h3>🚀 快速开始</h3>
+                <ol>
+                    <li><strong>设置集装箱尺寸</strong>：输入集装箱的长、宽、高（单位：厘米）</li>
+                    <li><strong>添加货物箱子</strong>：点击「添加箱子」按钮，设置每种箱子的尺寸和数量</li>
+                    <li><strong>开始计算</strong>：点击「开始计算」按钮，系统将自动计算最优装箱方案</li>
+                    <li><strong>查看结果</strong>：在3D视图中查看装箱效果，并查看详细统计信息</li>
+                </ol>
+            </div>
+
+            <div class="help-section">
+                <h3>🎮 3D视图操作</h3>
+                <ul>
+                    <li><strong>旋转视角</strong>：按住鼠标左键拖动</li>
+                    <li><strong>缩放</strong>：滚动鼠标滚轮</li>
+                    <li><strong>平移</strong>：按住鼠标右键拖动</li>
+                    <li><strong>查看箱子信息</strong>：将鼠标悬停在箱子上</li>
+                </ul>
+            </div>
+
+            <div class="help-section">
+                <h3>🎨 图例功能</h3>
+                <p>点击图例中的箱子类型可以<strong>显示/隐藏</strong>对应的箱子，方便查看特定类型箱子的分布情况。被隐藏的箱子类型会显示为半透明状态。</p>
+            </div>
+
+            <div class="help-section">
+                <h3>⚙️ 摆放策略说明</h3>
+                <p>本工具支持 <strong>6种摆放策略</strong>，可根据需求选择：</p>
+                <ul>
+                    <li><strong>底层优先 (Bottom-Left)</strong>：优先填满底层空间，从底部向上堆叠，确保稳定性</li>
+                    <li><strong>分层铺满 (Layer Building)</strong>：按层铺满，每层高度一致，整齐度高</li>
+                    <li><strong>后向堆叠 (Back-to-Front)</strong>：从集装箱后部（深处）往前填充，方便装卸</li>
+                    <li><strong>墙构建法 (Wall Building)</strong>：从左到右逐面构建"墙"，适合分区管理</li>
+                    <li><strong>体积优先 (FFD)</strong>：按体积从大到小排序，优先放置大件，空间利用率最高</li>
+                    <li><strong>用户顺序 (Manual)</strong>：完全按照您添加/拖拽的顺序放置</li>
+                </ul>
+                <div class="help-tip">
+                    💡 <strong>提示</strong>：可拖拽箱子卡片调整顺序，选择"用户顺序"策略后按此顺序装箱。
+                </div>
+            </div>
+
+            <div class="help-section">
+                <h3>📐 摆放姿势说明</h3>
+                <p>本工具支持 <strong>2种摆放姿势</strong>，适用于不同货物保护需求：</p>
+                <ul>
+                    <li><strong>随意摆放 (Free Rotation)</strong>：箱子可以任意旋转（6种姿态），完全追求最大空间利用率。适合不怕挤压的普通货物</li>
+                    <li><strong>立放 (Upright Only)</strong>：底层和中间层的箱子必须"立着放"（最长边朝上），防止货物被挤压受损；顶层可以任意放置以最大化空间利用率。<strong>适合易碎品、怕压货物</strong></li>
+                </ul>
+                <div class="help-tip">
+                    💡 <strong>提示</strong>：选择"立放"模式时，系统会自动判断顶层区域（容器高度80%以上），顶层箱子可任意旋转填充剩余空间。
+                </div>
+            </div>
+
+            <div class="help-section">
+                <h3>📤 导出功能</h3>
+                <p>点击「导出结果」可将装箱方案导出为文本文件，包含：</p>
+                <ul>
+                    <li>集装箱尺寸和各类箱子装载数量</li>
+                    <li>空间利用率统计</li>
+                    <li>每个箱子的详细摆放位置和尺寸</li>
+                </ul>
+            </div>
+
+            <div class="help-section">
+                <h3>⚠️ 注意事项</h3>
+                <ul>
+                    <li>所有尺寸单位均为<strong>厘米（cm）</strong></li>
+                    <li>箱子旋转方式可通过"摆放姿势"选项控制：随意摆放（6种姿态）或立放（最长边朝上）</li>
+                    <li>实际装箱时请考虑箱子的承重限制和堆叠要求</li>
+                    <li>计算结果为理论最优方案，实际操作可能需要适当调整</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // ==================== 全局变量 ====================
+        let scene, camera, renderer, controls;
+        let boxes = [];
+        let boxCounter = 0;
+        let placedBoxes = [];
+        let wireframeMode = false;
+        let showAxes = true;
+        let showContainerBox = true;
+        let axesHelper;
+        let containerMesh;
+        let boxMeshes = []; // 存储所有箱子的mesh引用
+        let boxVisibility = {}; // 存储每种箱子的显示状态
+
+        // Raycaster 用于鼠标悬浮检测
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let hoveredMesh = null;
+
+        // 颜色方案
+        const colors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+            '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52BE80',
+            '#EC7063', '#5DADE2', '#48C9B0', '#F5B7B1', '#D7BDE2'
+        ];
+
+        // ==================== 3D场景初始化 ====================
+        function initScene() {
+            const container = document.getElementById('canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
+
+            camera = new THREE.PerspectiveCamera(45, width / height, 1, 10000);
+            camera.position.set(2000, 1500, 2000);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // 光源
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            directionalLight.position.set(1000, 1000, 1000);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            // 坐标轴
+            axesHelper = new THREE.AxesHelper(500);
+            scene.add(axesHelper);
+
+            // 网格
+            const gridHelper = new THREE.GridHelper(3000, 30);
+            scene.add(gridHelper);
+
+            // 鼠标事件
+            renderer.domElement.addEventListener('mousemove', onMouseMove, false);
+            renderer.domElement.addEventListener('mouseleave', onMouseLeave, false);
+
+            animate();
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            
+            // 检测鼠标悬浮
+            checkHover();
+            
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        // ==================== 鼠标悬浮检测 ====================
+        function onMouseMove(event) {
+            const container = document.getElementById('canvas-container');
+            const rect = container.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / container.clientHeight) * 2 + 1;
+            
+            // 更新tooltip位置
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.left = (event.clientX - rect.left + 15) + 'px';
+            tooltip.style.top = (event.clientY - rect.top + 15) + 'px';
+        }
+
+        function onMouseLeave() {
+            hideTooltip();
+            if (hoveredMesh) {
+                hoveredMesh.material.emissive.setHex(0x000000);
+                hoveredMesh = null;
+            }
+        }
+
+        function checkHover() {
+            if (boxMeshes.length === 0) return;
+
+            raycaster.setFromCamera(mouse, camera);
+            const visibleMeshes = boxMeshes.filter(m => m.visible);
+            const intersects = raycaster.intersectObjects(visibleMeshes);
+
+            if (intersects.length > 0) {
+                const mesh = intersects[0].object;
+                
+                if (hoveredMesh !== mesh) {
+                    // 恢复之前悬浮的mesh
+                    if (hoveredMesh) {
+                        hoveredMesh.material.emissive.setHex(0x000000);
+                    }
+                    
+                    hoveredMesh = mesh;
+                    mesh.material.emissive.setHex(0x333333);
+                    showTooltip(mesh.userData);
+                }
+            } else {
+                if (hoveredMesh) {
+                    hoveredMesh.material.emissive.setHex(0x000000);
+                    hoveredMesh = null;
+                    hideTooltip();
+                }
+            }
+        }
+
+        function showTooltip(boxData) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.innerHTML = `
+                <div class="tooltip-title" style="color: ${boxData.color}">📦 ${boxData.name}</div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">尺寸：</span>
+                    <span class="tooltip-value">${boxData.length} × ${boxData.width} × ${boxData.height} cm</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">位置：</span>
+                    <span class="tooltip-value">(${boxData.x}, ${boxData.y}, ${boxData.z})</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">体积：</span>
+                    <span class="tooltip-value">${((boxData.length * boxData.width * boxData.height) / 1000000).toFixed(4)} m³</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">序号：</span>
+                    <span class="tooltip-value">#${boxData.index + 1}</span>
+                </div>
+            `;
+            tooltip.classList.add('visible');
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').classList.remove('visible');
+        }
+
+        // ==================== 输入管理 ====================
+        // 策略描述映射
+        var strategyDescriptions = {
+            'bottom-left': '📦 优先填满底层空间，从底部开始向上堆叠，确保稳定性。适合重心要求高的场景。',
+            'layer': '📦 严格按层填充，同层箱子高度接近，整齐度最高。适合需要分层管理的货物。',
+            'back-front': '📦 从集装箱后部（深处）往前门方向填充。适合需要按顺序卸货的场景（先装后卸）。',
+            'wall': '📦 沿长度方向逐面构建"墙"，先填满一面墙再移动到下一面。适合分区管理。',
+            'ffd': '📦 按体积从大到小排序，优先放置大件物品，空间利用率通常最高。推荐默认使用。',
+            'manual': '📦 完全按照您添加/拖拽的顺序放置，满足特定业务需求（如优先级、紧急程度等）。'
+        };
+
+        // 摆放姿势描述映射
+        var orientationDescriptions = {
+            'free': '📦 箱子可以任意旋转（6种姿态），追求最大空间利用率。适合不怕挤压的普通货物。',
+            'upright': '📦 底层/中间层箱子"立着放"（最长边朝上），防止挤压受损；顶层可任意放以最大化利用率。适合易碎品、怕压货物。'
+        };
+
+        function updateStrategyDesc() {
+            var strategy = document.getElementById('packing-strategy').value;
+            document.getElementById('strategy-desc').textContent = strategyDescriptions[strategy];
+        }
+
+        function updateOrientationDesc() {
+            var orientation = document.getElementById('orientation-mode').value;
+            document.getElementById('orientation-desc').textContent = orientationDescriptions[orientation];
+        }
+
+        // ==================== 拖拽排序功能 ====================
+        var draggedItem = null;
+
+        function initDragAndDrop(element) {
+            element.setAttribute('draggable', 'true');
+            
+            element.addEventListener('dragstart', function(e) {
+                draggedItem = this;
+                this.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', this.innerHTML);
+            });
+            
+            element.addEventListener('dragend', function(e) {
+                this.classList.remove('dragging');
+                // 移除所有 drag-over 样式
+                document.querySelectorAll('.box-item').forEach(function(item) {
+                    item.classList.remove('drag-over');
+                });
+                draggedItem = null;
+            });
+            
+            element.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (this !== draggedItem) {
+                    this.classList.add('drag-over');
+                }
+            });
+            
+            element.addEventListener('dragleave', function(e) {
+                this.classList.remove('drag-over');
+            });
+            
+            element.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+                
+                if (this !== draggedItem && draggedItem) {
+                    var container = document.getElementById('boxes-container');
+                    var allItems = Array.from(container.querySelectorAll('.box-item'));
+                    var draggedIdx = allItems.indexOf(draggedItem);
+                    var targetIdx = allItems.indexOf(this);
+                    
+                    if (draggedIdx < targetIdx) {
+                        this.parentNode.insertBefore(draggedItem, this.nextSibling);
+                    } else {
+                        this.parentNode.insertBefore(draggedItem, this);
+                    }
+                    
+                    // 更新箱子编号显示
+                    updateBoxNumbers();
+                }
+            });
+        }
+
+        function updateBoxNumbers() {
+            var boxItems = document.querySelectorAll('.box-item');
+            boxItems.forEach(function(item, index) {
+                var header = item.querySelector('.box-item-header strong');
+                if (header) {
+                    var id = item.id.split('-')[1];
+                    header.textContent = '箱子 ' + id + ' (顺序: ' + (index + 1) + ')';
+                }
+            });
+        }
+
+        function addBox() {
+            boxCounter++;
+            const color = colors[(boxCounter - 1) % colors.length];
+            const boxHtml = `
+                <div class="box-item" id="box-${boxCounter}">
+                    <button class="btn-remove" onclick="removeBox(${boxCounter})">×</button>
+                    <div class="box-item-header">
+                        <span class="drag-handle">⋮⋮</span>
+                        <div class="color-indicator" style="background-color: ${color}"></div>
+                        <strong>箱子 ${boxCounter}</strong>
+                    </div>
+                    <div class="input-group">
+                        <label>尺寸 (cm)</label>
+                        <div class="input-row">
+                            <input type="number" placeholder="长" value="${50 + boxCounter * 10}" min="1" data-box="${boxCounter}" data-field="length">
+                            <input type="number" placeholder="宽" value="${40 + boxCounter * 5}" min="1" data-box="${boxCounter}" data-field="width">
+                            <input type="number" placeholder="高" value="${30 + boxCounter * 5}" min="1" data-box="${boxCounter}" data-field="height">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>数量</label>
+                        <input type="number" placeholder="数量" value="${10 + boxCounter * 5}" min="1" data-box="${boxCounter}" data-field="quantity" style="width: 100%">
+                    </div>
+                </div>
+            `;
+            document.getElementById('boxes-container').insertAdjacentHTML('beforeend', boxHtml);
+            
+            // 为新添加的箱子初始化拖拽功能
+            var newBox = document.getElementById('box-' + boxCounter);
+            initDragAndDrop(newBox);
+            
+            // 更新顺序显示
+            updateBoxNumbers();
+        }
+
+        function removeBox(id) {
+            document.getElementById(`box-${id}`).remove();
+            updateBoxNumbers();
+        }
+
+        function getInputData() {
+            const container = {
+                length: parseFloat(document.getElementById('container-length').value),
+                width: parseFloat(document.getElementById('container-width').value),
+                height: parseFloat(document.getElementById('container-height').value)
+            };
+
+            boxes = [];
+            const boxElements = document.querySelectorAll('.box-item');
+            boxElements.forEach((element, index) => {
+                const id = element.id.split('-')[1];
+                const length = parseFloat(element.querySelector(`[data-box="${id}"][data-field="length"]`).value);
+                const width = parseFloat(element.querySelector(`[data-box="${id}"][data-field="width"]`).value);
+                const height = parseFloat(element.querySelector(`[data-box="${id}"][data-field="height"]`).value);
+                const quantity = parseInt(element.querySelector(`[data-box="${id}"][data-field="quantity"]`).value);
+                
+                boxes.push({
+                    id: parseInt(id),
+                    length, width, height, quantity,
+                    color: colors[index % colors.length],
+                    name: `箱子 ${id}`
+                });
+            });
+
+            return { container, boxes };
+        }
+
+        // ==================== Web Worker 装箱算法 ====================
+        // 创建 Web Worker 的内联代码（使用数组拼接避免编码问题）
+        var workerCodeLines = [
+            'function isPointInsideBox(point, box) {',
+            '    return point.x >= box.x && point.x < box.x + box.length &&',
+            '           point.y >= box.y && point.y < box.y + box.height &&',
+            '           point.z >= box.z && point.z < box.z + box.width;',
+            '}',
+            '',
+            'function checkCollisionFast(newBox, placedBoxes) {',
+            '    var ax1 = newBox.x, ax2 = newBox.x + newBox.length;',
+            '    var ay1 = newBox.y, ay2 = newBox.y + newBox.height;',
+            '    var az1 = newBox.z, az2 = newBox.z + newBox.width;',
+            '    for (var i = placedBoxes.length - 1; i >= 0; i--) {',
+            '        var b = placedBoxes[i];',
+            '        if (ax1 < b.x + b.length && ax2 > b.x &&',
+            '            ay1 < b.y + b.height && ay2 > b.y &&',
+            '            az1 < b.z + b.width && az2 > b.z) {',
+            '            return true;',
+            '        }',
+            '    }',
+            '    return false;',
+            '}',
+            '',
+            '// 根据摆放姿势过滤有效的旋转方式',
+            '// orientation: "free" 随意摆放, "upright" 立放（最长边朝上）',
+            'function getValidRotations(box, orientation, pointY, containerHeight) {',
+            '    var l = box.length, w = box.width, h = box.height;',
+            '    // 所有6种旋转方式：[长度, 宽度, 高度]',
+            '    var allDims = [',
+            '        [l, w, h], [l, h, w], [w, l, h], [w, h, l], [h, l, w], [h, w, l]',
+            '    ];',
+            '    ',
+            '    // 去重',
+            '    var rotationsSet = {};',
+            '    var rotations = [];',
+            '    for (var di = 0; di < allDims.length; di++) {',
+            '        var d = allDims[di];',
+            '        var key = d[0] + "-" + d[1] + "-" + d[2];',
+            '        if (!rotationsSet[key]) {',
+            '            rotationsSet[key] = true;',
+            '            rotations.push({ l: d[0], w: d[1], h: d[2] });',
+            '        }',
+            '    }',
+            '    ',
+            '    // 如果是随意摆放，返回所有旋转',
+            '    if (orientation === "free") {',
+            '        return rotations;',
+            '    }',
+            '    ',
+            '    // 立放模式：底层和中间层只保留最长边朝上的旋转',
+            '    if (orientation === "upright") {',
+            '        var maxDim = Math.max(l, w, h);',
+            '        // 判断是否接近顶层（Y位置 + 最长边 > 容器高度的80%）',
+            '        var isNearTop = (pointY + maxDim) > containerHeight * 0.8;',
+            '        ',
+            '        if (isNearTop) {',
+            '            // 顶层区域：可以任意放置以最大化空间利用率',
+            '            return rotations;',
+            '        } else {',
+            '            // 非顶层：只保留最长边作为高度（朝上）的旋转',
+            '            var uprightRotations = [];',
+            '            for (var ri = 0; ri < rotations.length; ri++) {',
+            '                var rot = rotations[ri];',
+            '                // 高度必须是最长边（立放）',
+            '                if (rot.h === maxDim) {',
+            '                    uprightRotations.push(rot);',
+            '                }',
+            '            }',
+            '            // 如果过滤后没有有效旋转（极端情况），返回原始旋转',
+            '            return uprightRotations.length > 0 ? uprightRotations : rotations;',
+            '        }',
+            '    }',
+            '    ',
+            '    return rotations;',
+            '}',
+            '',
+            '// 根据策略计算评分（分数越低越优先）',
+            '// 关键改进：使用更精细的区域划分，确保填满一个区域再移动到下一个',
+            'function getScoreByStrategy(point, rot, container, strategy, placedBoxes) {',
+            '    var x = point.x, y = point.y, z = point.z;',
+            '    ',
+            '    // 计算当前已放置箱子的边界，用于区域划分',
+            '    var maxX = 0, maxY = 0, maxZ = 0;',
+            '    for (var i = 0; i < placedBoxes.length; i++) {',
+            '        var pb = placedBoxes[i];',
+            '        if (pb.x + pb.length > maxX) maxX = pb.x + pb.length;',
+            '        if (pb.y + pb.height > maxY) maxY = pb.y + pb.height;',
+            '        if (pb.z + pb.width > maxZ) maxZ = pb.z + pb.width;',
+            '    }',
+            '    ',
+            '    switch (strategy) {',
+            '        case "bottom-left":',
+            '            // 底层优先：Y轴最低 -> X轴最小 -> Z轴最小',
+            '            // 优先填满底层，然后向上堆叠',
+            '            return y * 1000000 + x * 1000 + z;',
+            '        ',
+            '        case "layer":',
+            '            // 分层铺满：严格按层填充',
+            '            // 优先在当前层（Y范围内）填满，层满后才开新层',
+            '            var layerHeight = rot ? rot.h : 50;',
+            '            var currentLayer = Math.floor(y / Math.max(layerHeight, 1));',
+            '            // 同层内优先X最小，然后Z最小',
+            '            return currentLayer * 100000000 + x * 10000 + z * 10 + y;',
+            '        ',
+            '        case "back-front":',
+            '            // 后向堆叠：从后往前填充（Z轴从大到小）',
+            '            // 核心：优先填满后部区域，逐渐向前推进',
+            '            // 1. 首先按Z轴划分区域（从后到前）',
+            '            // 2. 在同一Z区域内，优先底层(Y小)，再靠左(X小)',
+            '            var zRegionSize = container.width / 4; // 将深度分成4个区域',
+            '            var zRegion = Math.floor((container.width - z) / Math.max(zRegionSize, 1));',
+            '            // 同区域内优先底层、靠左',
+            '            return zRegion * 100000000 + y * 10000 + x * 10 + (container.width - z);',
+            '        ',
+            '        case "wall":',
+            '            // 墙构建法：沿X轴逐面构建"墙"',
+            '            // 核心：先填满一面墙（Y-Z平面），再移动到下一个X位置',
+            '            // 1. 首先按X轴划分区域（从左到右构建墙）',
+            '            // 2. 在同一面墙内，优先底层(Y小)，再靠后(Z小)',
+            '            var wallThickness = container.length / 6; // 将长度分成6面墙',
+            '            var wallRegion = Math.floor(x / Math.max(wallThickness, 1));',
+            '            // 同一面墙内优先底层、靠后',
+            '            return wallRegion * 100000000 + y * 10000 + z * 10 + x;',
+            '        ',
+            '        case "ffd":',
+            '        case "manual":',
+            '        default:',
+            '            // 体积优先/用户顺序：使用底层优先评分',
+            '            return y * 1000000 + x * 1000 + z;',
+            '    }',
+            '}',
+            '',
+            '// 根据策略对箱子排序',
+            'function sortBoxesByStrategy(allBoxes, strategy) {',
+            '    switch (strategy) {',
+            '        case "ffd":',
+            '            // 体积优先：按体积从大到小',
+            '            allBoxes.sort(function(a, b) {',
+            '                if (b.volume !== a.volume) return b.volume - a.volume;',
+            '                return b.maxFace - a.maxFace;',
+            '            });',
+            '            break;',
+            '        case "layer":',
+            '            // 分层：按高度分组，同组内按底面积从大到小',
+            '            // 这样相同高度的箱子会在同一层',
+            '            allBoxes.sort(function(a, b) {',
+            '                var minHA = Math.min(a.length, a.width, a.height);',
+            '                var minHB = Math.min(b.length, b.width, b.height);',
+            '                // 先按最小边（作为高度）分组',
+            '                if (minHA !== minHB) return minHA - minHB;',
+            '                // 同高度按底面积从大到小',
+            '                return b.volume - a.volume;',
+            '            });',
+            '            break;',
+            '        case "wall":',
+            '            // 墙构建：按最大面（墙面）从大到小',
+            '            allBoxes.sort(function(a, b) {',
+            '                if (b.maxFace !== a.maxFace) return b.maxFace - a.maxFace;',
+            '                return b.volume - a.volume;',
+            '            });',
+            '            break;',
+            '        case "back-front":',
+            '            // 后向堆叠：按体积从大到小',
+            '            allBoxes.sort(function(a, b) {',
+            '                if (b.volume !== a.volume) return b.volume - a.volume;',
+            '                return b.maxFace - a.maxFace;',
+            '            });',
+            '            break;',
+            '        case "manual":',
+            '            // 用户顺序：保持原序，按 orderIndex 排序',
+            '            allBoxes.sort(function(a, b) {',
+            '                return a.orderIndex - b.orderIndex;',
+            '            });',
+            '            break;',
+            '        case "bottom-left":',
+            '        default:',
+            '            // 底层优先：按体积从大到小',
+            '            allBoxes.sort(function(a, b) {',
+            '                if (b.volume !== a.volume) return b.volume - a.volume;',
+            '                return b.maxFace - a.maxFace;',
+            '            });',
+            '            break;',
+            '    }',
+            '}',
+            '',
+            '// 根据策略对极点排序',
+            'function sortExtremePointsByStrategy(extremePoints, container, strategy, placedBoxes) {',
+            '    extremePoints.sort(function(a, b) {',
+            '        var scoreA = getScoreByStrategy(a, null, container, strategy, placedBoxes);',
+            '        var scoreB = getScoreByStrategy(b, null, container, strategy, placedBoxes);',
+            '        return scoreA - scoreB;',
+            '    });',
+            '}',
+            '',
+            'function packBoxes(container, boxes, strategy, orientation) {',
+            '    var placedBoxes = [];',
+            '    var extremePoints = [{ x: 0, y: 0, z: 0 }];',
+            '    var MAX_EXTREME_POINTS = 800;',
+            '    var allBoxes = [];',
+            '    var orderIndex = 0;',
+            '    boxes.forEach(function(box) {',
+            '        for (var i = 0; i < box.quantity; i++) {',
+            '            var faces = [box.length * box.width, box.length * box.height, box.width * box.height];',
+            '            allBoxes.push({',
+            '                id: box.id, name: box.name, color: box.color,',
+            '                length: box.length, width: box.width, height: box.height,',
+            '                quantity: box.quantity,',
+            '                volume: box.length * box.width * box.height,',
+            '                maxFace: Math.max.apply(null, faces),',
+            '                orderIndex: orderIndex++',
+            '            });',
+            '        }',
+            '    });',
+            '',
+            '    // 根据策略排序',
+            '    sortBoxesByStrategy(allBoxes, strategy);',
+            '',
+            '    var totalBoxes = allBoxes.length;',
+            '    var lastProgress = 0;',
+            '    ',
+            '    for (var boxIdx = 0; boxIdx < allBoxes.length; boxIdx++) {',
+            '        var box = allBoxes[boxIdx];',
+            '        var progress = Math.floor((boxIdx / totalBoxes) * 100);',
+            '        if (progress >= lastProgress + 10) {',
+            '            lastProgress = progress;',
+            '            self.postMessage({ type: "progress", progress: progress, placed: placedBoxes.length });',
+            '        }',
+            '        var bestPlacement = null;',
+            '        var bestScore = Infinity;',
+            '        ',
+            '        // 根据策略排序极点',
+            '        sortExtremePointsByStrategy(extremePoints, container, strategy, placedBoxes);',
+            '        ',
+            '        var pointsToCheck = extremePoints.slice(0, MAX_EXTREME_POINTS);',
+            '        for (var pi = 0; pi < pointsToCheck.length; pi++) {',
+            '            var point = pointsToCheck[pi];',
+            '            ',
+            '            // 根据摆放姿势和当前位置获取有效旋转',
+            '            var rotations = getValidRotations(box, orientation, point.y, container.height);',
+            '            ',
+            '            for (var ri = 0; ri < rotations.length; ri++) {',
+            '                var rot = rotations[ri];',
+            '                if (point.x + rot.l > container.length ||',
+            '                    point.y + rot.h > container.height ||',
+            '                    point.z + rot.w > container.width) {',
+            '                    continue;',
+            '                }',
+            '                var newBox = { x: point.x, y: point.y, z: point.z, length: rot.l, width: rot.w, height: rot.h };',
+            '                if (!checkCollisionFast(newBox, placedBoxes)) {',
+            '                    var score = getScoreByStrategy(point, rot, container, strategy, placedBoxes);',
+            '                    if (score < bestScore) {',
+            '                        bestScore = score;',
+            '                        bestPlacement = {',
+            '                            id: box.id, name: box.name, color: box.color,',
+            '                            x: point.x, y: point.y, z: point.z,',
+            '                            length: rot.l, width: rot.w, height: rot.h',
+            '                        };',
+            '                    }',
+            '                }',
+            '            }',
+            '        }',
+            '        if (bestPlacement) {',
+            '            placedBoxes.push(bestPlacement);',
+            '            var newPoints = [',
+            '                { x: bestPlacement.x + bestPlacement.length, y: bestPlacement.y, z: bestPlacement.z },',
+            '                { x: bestPlacement.x, y: bestPlacement.y + bestPlacement.height, z: bestPlacement.z },',
+            '                { x: bestPlacement.x, y: bestPlacement.y, z: bestPlacement.z + bestPlacement.width }',
+            '            ];',
+            '            for (var ni = 0; ni < newPoints.length; ni++) {',
+            '                var np = newPoints[ni];',
+            '                var exists = false;',
+            '                for (var ei = 0; ei < extremePoints.length; ei++) {',
+            '                    var ep = extremePoints[ei];',
+            '                    if (ep.x === np.x && ep.y === np.y && ep.z === np.z) {',
+            '                        exists = true;',
+            '                        break;',
+            '                    }',
+            '                }',
+            '                if (!exists) extremePoints.push(np);',
+            '            }',
+            '            extremePoints = extremePoints.filter(function(ep) {',
+            '                return !isPointInsideBox(ep, bestPlacement);',
+            '            });',
+            '            if (extremePoints.length > MAX_EXTREME_POINTS * 2) {',
+            '                sortExtremePointsByStrategy(extremePoints, container, strategy, placedBoxes);',
+            '                extremePoints = extremePoints.slice(0, MAX_EXTREME_POINTS);',
+            '            }',
+            '        }',
+            '    }',
+            '    return placedBoxes;',
+            '}',
+            '',
+            'self.onmessage = function(e) {',
+            '    var data = e.data;',
+            '    var startTime = performance.now();',
+            '    var result = packBoxes(data.container, data.boxes, data.strategy, data.orientation);',
+            '    var duration = performance.now() - startTime;',
+            '    self.postMessage({ type: "result", data: result, duration: duration });',
+            '};'
+        ];
+        var workerCode = workerCodeLines.join('\n');
+
+        // 创建 Worker Blob URL
+        var workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+        var workerUrl = URL.createObjectURL(workerBlob);
+        var packingWorker = null;
+
+        // 创建/重用 Worker
+        function getWorker() {
+            if (!packingWorker) {
+                packingWorker = new Worker(workerUrl);
+            }
+            return packingWorker;
+        }
+
+        // 使用 Worker 进行装箱计算
+        function packBoxesAsync(container, boxes, strategy, orientation) {
+            return new Promise(function(resolve, reject) {
+                var worker = getWorker();
+                
+                worker.onmessage = function(e) {
+                    if (e.data.type === 'progress') {
+                        var loadingEl = document.getElementById('loading');
+                        loadingEl.innerHTML = '正在计算最优方案...<br><span style="font-size: 14px; opacity: 0.8;">进度: ' + e.data.progress + '% (已放置 ' + e.data.placed + ' 个)</span>';
+                    } else if (e.data.type === 'result') {
+                        resolve({ result: e.data.data, duration: e.data.duration });
+                    }
+                };
+                
+                worker.onerror = function(error) {
+                    reject(error);
+                };
+                
+                worker.postMessage({ container: container, boxes: boxes, strategy: strategy, orientation: orientation });
+            });
+        }
+
+        // 快速碰撞检测（同步版本使用）
+        function checkCollisionFast(newBox, placedBoxes) {
+            var ax1 = newBox.x, ax2 = newBox.x + newBox.length;
+            var ay1 = newBox.y, ay2 = newBox.y + newBox.height;
+            var az1 = newBox.z, az2 = newBox.z + newBox.width;
+            for (var i = placedBoxes.length - 1; i >= 0; i--) {
+                var b = placedBoxes[i];
+                if (ax1 < b.x + b.length && ax2 > b.x && ay1 < b.y + b.height && ay2 > b.y && az1 < b.z + b.width && az2 > b.z) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // ==================== 3D可视化 ====================
+        function visualizeResults(container, placedBoxes) {
+            // 清除旧对象
+            while(scene.children.length > 0) { 
+                scene.remove(scene.children[0]); 
+            }
+            boxMeshes = [];
+
+            // 重新添加光源和辅助对象
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            directionalLight.position.set(1000, 1000, 1000);
+            scene.add(directionalLight);
+
+            if (showAxes) {
+                axesHelper = new THREE.AxesHelper(500);
+                scene.add(axesHelper);
+            }
+
+            const gridHelper = new THREE.GridHelper(3000, 30);
+            scene.add(gridHelper);
+
+            // 绘制集装箱边框
+            const containerGeometry = new THREE.BoxGeometry(container.length, container.height, container.width);
+            const containerEdges = new THREE.EdgesGeometry(containerGeometry);
+            containerMesh = new THREE.LineSegments(
+                containerEdges,
+                new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 })
+            );
+            containerMesh.position.set(container.length / 2, container.height / 2, container.width / 2);
+            containerMesh.visible = showContainerBox;
+            scene.add(containerMesh);
+
+            // 绘制已放置的箱子
+            placedBoxes.forEach((box, index) => {
+                const geometry = new THREE.BoxGeometry(box.length, box.height, box.width);
+                const material = new THREE.MeshPhongMaterial({
+                    color: box.color,
+                    transparent: true,
+                    opacity: 0.85,
+                    wireframe: wireframeMode
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(
+                    box.x + box.length / 2,
+                    box.y + box.height / 2,
+                    box.z + box.width / 2
+                );
+
+                // 存储箱子信息用于悬浮提示
+                mesh.userData = {
+                    ...box,
+                    index: index
+                };
+
+                // 添加边框
+                const edges = new THREE.EdgesGeometry(geometry);
+                const line = new THREE.LineSegments(
+                    edges,
+                    new THREE.LineBasicMaterial({ color: 0x000000 })
+                );
+                line.position.copy(mesh.position);
+                
+                // 将边框作为mesh的子对象，方便一起隐藏
+                mesh.add(line);
+                line.position.set(0, 0, 0);
+                
+                scene.add(mesh);
+                boxMeshes.push(mesh);
+            });
+
+            // 初始化所有箱子类型为可见
+            boxes.forEach(box => {
+                boxVisibility[box.id] = true;
+            });
+
+            // 调整相机位置
+            const maxDim = Math.max(container.length, container.width, container.height);
+            camera.position.set(maxDim * 1.5, maxDim * 1.2, maxDim * 1.5);
+            controls.target.set(container.length / 2, container.height / 2, container.width / 2);
+            controls.update();
+        }
+
+        // ==================== 结果展示 ====================
+        function displayResults(container, boxes, placedBoxes) {
+            const containerVolume = (container.length * container.width * container.height) / 1000000;
+            let usedVolume = 0;
+            const boxCounts = {};
+
+            placedBoxes.forEach(box => {
+                usedVolume += (box.length * box.width * box.height) / 1000000;
+                boxCounts[box.id] = (boxCounts[box.id] || 0) + 1;
+            });
+
+            const utilizationRate = (usedVolume / containerVolume * 100).toFixed(2);
+
+            // 更新策略显示
+            document.getElementById('algorithm-badge').textContent = strategyNames[currentStrategy];
+
+            document.getElementById('utilization-rate').textContent = utilizationRate + '%';
+            document.getElementById('utilization-fill').style.width = utilizationRate + '%';
+            document.getElementById('utilization-fill').textContent = utilizationRate + '%';
+            document.getElementById('container-volume').textContent = containerVolume.toFixed(2) + ' m³';
+            document.getElementById('used-volume').textContent = usedVolume.toFixed(2) + ' m³';
+            document.getElementById('total-boxes').textContent = placedBoxes.length;
+
+            // 显示各类箱子详情
+            let detailsHtml = '';
+            boxes.forEach(box => {
+                const count = boxCounts[box.id] || 0;
+                detailsHtml += `
+                    <div class="result-item">
+                        <span class="result-label">
+                            <span style="display: inline-block; width: 15px; height: 15px; background: ${box.color}; border-radius: 3px; margin-right: 8px; vertical-align: middle;"></span>
+                            ${box.name} (${box.length}×${box.width}×${box.height}cm)
+                        </span>
+                        <span class="result-value">${count} / ${box.quantity}</span>
+                    </div>
+                `;
+            });
+            document.getElementById('box-details').innerHTML = detailsHtml;
+
+            // 显示可交互的图例
+            let legendHtml = '';
+            boxes.forEach(box => {
+                legendHtml += `
+                    <div class="legend-item active" data-box-id="${box.id}" onclick="toggleBoxVisibility(${box.id})">
+                        <div class="legend-color" style="background-color: ${box.color}"></div>
+                        <div class="legend-text">${box.name}<br>${box.length}×${box.width}×${box.height}cm</div>
+                    </div>
+                `;
+            });
+            document.getElementById('legend').innerHTML = legendHtml;
+
+            document.getElementById('legend-panel').style.display = 'block';
+            document.getElementById('results').style.display = 'block';
+        }
+
+        // ==================== 图例交互 - 显示/隐藏箱子 ====================
+        function toggleBoxVisibility(boxId) {
+            boxVisibility[boxId] = !boxVisibility[boxId];
+            const isVisible = boxVisibility[boxId];
+
+            // 更新图例样式
+            const legendItem = document.querySelector(`.legend-item[data-box-id="${boxId}"]`);
+            if (isVisible) {
+                legendItem.classList.remove('hidden');
+                legendItem.classList.add('active');
+            } else {
+                legendItem.classList.add('hidden');
+                legendItem.classList.remove('active');
+            }
+
+            // 更新3D场景中对应箱子的可见性
+            boxMeshes.forEach(mesh => {
+                if (mesh.userData.id === boxId) {
+                    mesh.visible = isVisible;
+                }
+            });
+        }
+
+        // ==================== 计算入口 ====================
+        var currentStrategy = 'ffd'; // 当前使用的策略
+        var strategyNames = {
+            'bottom-left': '底层优先',
+            'layer': '分层铺满',
+            'back-front': '后向堆叠',
+            'wall': '墙构建法',
+            'ffd': '体积优先 (FFD)',
+            'manual': '用户顺序'
+        };
+
+        async function calculate() {
+            var data = getInputData();
+            
+            if (data.boxes.length === 0) {
+                alert('请至少添加一种箱子！');
+                return;
+            }
+
+            // 获取当前选择的策略和姿势
+            currentStrategy = document.getElementById('packing-strategy').value;
+            var currentOrientation = document.getElementById('orientation-mode').value;
+
+            // 姿势名称映射
+            var orientationNames = {
+                'free': '随意摆放',
+                'upright': '立放'
+            };
+
+            // 计算总箱子数用于显示
+            var totalBoxCount = data.boxes.reduce(function(sum, b) { return sum + b.quantity; }, 0);
+            var loadingEl = document.getElementById('loading');
+            loadingEl.innerHTML = '正在计算最优方案...<br><span style="font-size: 14px; opacity: 0.8;">共 ' + totalBoxCount + ' 个箱子，策略: ' + strategyNames[currentStrategy] + '，姿势: ' + orientationNames[currentOrientation] + '</span>';
+            loadingEl.classList.add('active');
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('legend-panel').style.display = 'none';
+
+            try {
+                // 使用 Web Worker 异步计算（不阻塞主线程）
+                var result = await packBoxesAsync(data.container, data.boxes, currentStrategy, currentOrientation);
+                var packed = result.result;
+                var duration = result.duration;
+                
+                // 更新全局变量
+                placedBoxes = packed;
+                
+                // 渲染结果
+                visualizeResults(data.container, packed);
+                displayResults(data.container, data.boxes, packed);
+                
+                // 显示计算耗时
+                var durationSec = (duration / 1000).toFixed(2);
+                console.log('[Web Worker] 装箱计算完成，策略: ' + currentStrategy + '，姿势: ' + currentOrientation + '，耗时: ' + durationSec + 's，放置了 ' + packed.length + '/' + totalBoxCount + ' 个箱子');
+                
+                loadingEl.classList.remove('active');
+            } catch (error) {
+                console.error('Web Worker 计算失败:', error);
+                loadingEl.innerHTML = '计算失败，请刷新页面重试';
+                loadingEl.classList.remove('active');
+            }
+        }
+
+        // ==================== 导出结果 ====================
+        // 全局变量保存当前姿势
+        var currentOrientationMode = 'free';
+        
+        function exportResults() {
+            if (placedBoxes.length === 0) {
+                alert('请先进行计算！');
+                return;
+            }
+
+            // 姿势名称映射
+            var orientationNames = {
+                'free': '随意摆放',
+                'upright': '立放'
+            };
+            var currentOrientation = document.getElementById('orientation-mode').value;
+
+            const data = getInputData();
+            let text = '═══════════════════════════════════════════════════════\n';
+            text += '              3D集装箱装箱方案报告\n';
+            text += '        策略：' + strategyNames[currentStrategy] + '\n';
+            text += '        姿势：' + orientationNames[currentOrientation] + '\n';
+            text += '═══════════════════════════════════════════════════════\n\n';
+            
+            text += `【集装箱尺寸】\n`;
+            text += `  长 × 宽 × 高: ${data.container.length} × ${data.container.width} × ${data.container.height} cm\n\n`;
+            
+            text += `【装箱统计】\n`;
+            const boxCounts = {};
+            placedBoxes.forEach(box => {
+                boxCounts[box.id] = (boxCounts[box.id] || 0) + 1;
+            });
+
+            data.boxes.forEach(box => {
+                const count = boxCounts[box.id] || 0;
+                text += `  ${box.name} (${box.length}×${box.width}×${box.height}cm): ${count}/${box.quantity}\n`;
+            });
+
+            const containerVolume = (data.container.length * data.container.width * data.container.height) / 1000000;
+            let usedVolume = 0;
+            placedBoxes.forEach(box => {
+                usedVolume += (box.length * box.width * box.height) / 1000000;
+            });
+            const utilizationRate = (usedVolume / containerVolume * 100).toFixed(2);
+
+            text += `\n【利用率统计】\n`;
+            text += `  空间利用率: ${utilizationRate}%\n`;
+            text += `  集装箱容积: ${containerVolume.toFixed(2)} m³\n`;
+            text += `  已使用容积: ${usedVolume.toFixed(2)} m³\n`;
+            text += `  装载总数: ${placedBoxes.length}\n\n`;
+
+            text += '═══════════════════════════════════════════════════════\n';
+            text += '                    详细摆放位置\n';
+            text += '═══════════════════════════════════════════════════════\n\n';
+            
+            placedBoxes.forEach((box, index) => {
+                text += `${String(index + 1).padStart(3, ' ')}. ${box.name}\n`;
+                text += `     位置: (${box.x}, ${box.y}, ${box.z})\n`;
+                text += `     尺寸: ${box.length} × ${box.width} × ${box.height} cm\n\n`;
+            });
+
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '装箱方案_' + new Date().toISOString().slice(0,10) + '.txt';
+            a.click();
+        }
+
+        // ==================== 控制函数 ====================
+        function resetCamera() {
+            const data = getInputData();
+            const maxDim = Math.max(data.container.length, data.container.width, data.container.height);
+            camera.position.set(maxDim * 1.5, maxDim * 1.2, maxDim * 1.5);
+            controls.target.set(data.container.length / 2, data.container.height / 2, data.container.width / 2);
+            controls.update();
+        }
+
+        function toggleWireframe() {
+            wireframeMode = !wireframeMode;
+            boxMeshes.forEach(mesh => {
+                mesh.material.wireframe = wireframeMode;
+            });
+        }
+
+        function toggleAxes() {
+            showAxes = !showAxes;
+            if (axesHelper) {
+                axesHelper.visible = showAxes;
+            }
+        }
+
+        function toggleContainer() {
+            showContainerBox = !showContainerBox;
+            if (containerMesh) {
+                containerMesh.visible = showContainerBox;
+            }
+        }
+
+        // ==================== 使用说明弹窗 ====================
+        function showHelp() {
+            document.getElementById('help-modal').classList.add('visible');
+        }
+
+        function hideHelp() {
+            document.getElementById('help-modal').classList.remove('visible');
+        }
+
+        // 点击弹窗外部关闭
+        document.getElementById('help-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideHelp();
+            }
+        });
+
+        // ==================== 初始化 ====================
+        window.onload = function() {
+            initScene();
+            addBox();
+            addBox();
+            addBox();
+        };
+    </script>
+</body>
+</html>
